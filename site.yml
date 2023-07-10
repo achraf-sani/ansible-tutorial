@@ -1,0 +1,71 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+    - name: fix broken
+      command: apt-get -f install -y
+
+    - name: install updates (AlmaLinux)
+      tags: always
+      dnf:
+        update_only: yes
+        update_cache: yes
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: install updates (Debian)
+      tags: always
+      apt:
+        upgrade: yes
+        update_cache: yes
+      when: ansible_distribution == "Debian"
+
+- hosts: web_servers
+  become: true
+  tasks:
+
+    - name: Install apache and php for Debian servers
+      tags: apache,apache2,debian
+      package:
+        name: 
+          - apache2
+          - libapache2-mod-php
+        state: latest
+      when: ansible_distribution == "Debian"
+
+    - name: Install apache and php for AlmaLinux servers
+      tags: apache,httpd,almalinux
+      dnf:
+        name: 
+          - httpd 
+          - php
+        state: latest
+      when: ansible_distribution == "AlmaLinux"
+
+- hosts: db_servers
+  become: true
+  tasks:
+    - name: install mariadb package (AlmaLinux)
+      tags: almalinux,db,mariadb
+      dnf:
+        name: mariadb
+        state: latest
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: install mariadb package (Debian)
+      tags: debian,db,mariadb
+      apt:
+        name: mariadb-server
+        state: latest
+      when: ansible_distribution == "Debian"
+
+- hosts: file_servers
+  become: true
+  tasks:
+    - name: install samba package
+      tags: samba
+      package: 
+        name: samba
+        state: latest
+
+
