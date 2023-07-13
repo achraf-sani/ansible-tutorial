@@ -3,22 +3,32 @@
 - hosts: all
   become: true
   pre_tasks:
-    - name: fix broken
-      command: apt-get -f install -y
-
     - name: install updates (AlmaLinux)
       tags: always
       dnf:
-        update_only: yes
         update_cache: yes
+      changed_when: false
       when: ansible_distribution == "AlmaLinux"
 
     - name: install updates (Debian)
       tags: always
       apt:
-        upgrade: yes
         update_cache: yes
+      changed_when: false
       when: ansible_distribution == "Debian"
+
+
+- hosts: all
+  become: true
+  tasks:
+    - name: add ssh key for sid
+      tags: always
+      authorized_key: 
+        user: sid
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICG6MkjxqukCAeZ84Q4cQqy7FcH61925ORLmm8cTgRAy ansible"
+      # state: absent   # to remove it if the key leaks or gets compromised
+
+
 
 - hosts: workstations
   become: true
@@ -29,7 +39,7 @@
 
     - name: install terraform
       unarchive:
-        url: https://releases.hashicorp.com/terraform/1.5.2/terraform_1.5.2_linux_amd64.zip
+        src: https://releases.hashicorp.com/terraform/1.5.2/terraform_1.5.2_linux_amd64.zip
         dest: /usr/local/bin
         remote_src: yes
         mode: 0755
@@ -56,6 +66,30 @@
           - php
         state: latest
       when: ansible_distribution == "AlmaLinux"
+
+    - name: start httpd (AlmaLinux)
+      tags: apache,httpd,almalinux
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: change address in conf
+      tags: apache,httpd,almalinux
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^ServerAdmin'
+        line: ServerAdmin == someone@somewhere.net
+      when: ansible_distribution == "AlmaLinux"
+      register: httpd
+
+    - name: restart httpd (AlmaLinux)
+      tags: apache,httpd,almalinux
+      service:
+        name: httpd
+        state: restarted
+      when: httpd.changed
 
     - name: copy default html file for site
       tags: apache,apache2,httpd
