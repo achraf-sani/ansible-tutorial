@@ -1,0 +1,130 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+    - name: install updates (AlmaLinux)
+      tags: always
+      dnf:
+        update_cache: yes
+      changed_when: false
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: install updates (Debian)
+      tags: always
+      apt:
+        update_cache: yes
+      changed_when: false
+      when: ansible_distribution == "Debian"
+
+
+- hosts: all
+  become: true
+  tasks:
+    - name: add ssh key for sid
+      tags: always
+      authorized_key: 
+        user: sid
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICG6MkjxqukCAeZ84Q4cQqy7FcH61925ORLmm8cTgRAy ansible"
+      # state: absent   # to remove it if the key leaks or gets compromised
+
+
+
+- hosts: workstations
+  become: true
+  tasks:
+    - name: install unzip
+      package:
+        name: unzip
+
+    - name: install terraform
+      unarchive:
+        src: https://releases.hashicorp.com/terraform/1.5.2/terraform_1.5.2_linux_amd64.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        mode: 0755
+        owner: root
+        group: root
+
+- hosts: web_servers
+  become: true
+  tasks:
+    - name: Install apache and php for Debian servers
+      tags: apache,apache2,debian
+      package:
+        name: 
+          - apache2
+          - libapache2-mod-php
+        state: latest
+      when: ansible_distribution == "Debian"
+
+    - name: Install apache and php for AlmaLinux servers
+      tags: apache,httpd,almalinux
+      dnf:
+        name: 
+          - httpd 
+          - php
+        state: latest
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: start httpd (AlmaLinux)
+      tags: apache,httpd,almalinux
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: change address in conf
+      tags: apache,httpd,almalinux
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^ServerAdmin'
+        line: ServerAdmin == someone@somewhere.net
+      when: ansible_distribution == "AlmaLinux"
+      register: httpd
+
+    - name: restart httpd (AlmaLinux)
+      tags: apache,httpd,almalinux
+      service:
+        name: httpd
+        state: restarted
+      when: httpd.changed
+
+    - name: copy default html file for site
+      tags: apache,apache2,httpd
+      copy:
+        src: default_site.html
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: 0644
+        
+
+- hosts: db_servers
+  become: true
+  tasks:
+    - name: install mariadb package (AlmaLinux)
+      tags: almalinux,db,mariadb
+      dnf:
+        name: mariadb
+        state: latest
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: install mariadb package (Debian)
+      tags: debian,db,mariadb
+      apt:
+        name: mariadb-server
+        state: latest
+      when: ansible_distribution == "Debian"
+
+- hosts: file_servers
+  become: true
+  tasks:
+    - name: install samba package
+      tags: samba
+      package: 
+        name: samba
+        state: latest
+
+
