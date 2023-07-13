@@ -1,0 +1,5 @@
+- name: add ssh key for sid
+  authorized_key: 
+    user: sid
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICG6MkjxqukCAeZ84Q4cQqy7FcH61925ORLmm8cTgRAy ansible"
+

@@ -1,0 +1,50 @@
+- name: Install apache and php for Debian servers
+  tags: apache,apache2,debian
+  package:
+    name: 
+      - apache2
+      - libapache2-mod-php
+    state: latest
+  when: ansible_distribution == "Debian"
+
+- name: Install apache and php for AlmaLinux servers
+  tags: apache,httpd,almalinux
+  dnf:
+    name: 
+      - httpd 
+      - php
+    state: latest
+  when: ansible_distribution == "AlmaLinux"
+
+- name: start httpd (AlmaLinux)
+  tags: apache,httpd,almalinux
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+  when: ansible_distribution == "AlmaLinux"
+
+- name: change address in conf
+  tags: apache,httpd,almalinux
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^ServerAdmin'
+    line: ServerAdmin == someone@somewhere.net
+  when: ansible_distribution == "AlmaLinux"
+  register: httpd
+
+- name: restart httpd (AlmaLinux)
+  tags: apache,httpd,almalinux
+  service:
+    name: httpd
+    state: restarted
+  when: httpd.changed
+
+- name: copy default html file for site
+  tags: apache,apache2,httpd
+  copy:
+    src: default_site.html
+    dest: /var/www/html/index.html
+    owner: root
+    group: root
+    mode: 0644
