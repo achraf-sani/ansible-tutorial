@@ -1,13 +1,5 @@
-- name: install mariadb package (AlmaLinux)
-  tags: almalinux,db,mariadb
-  dnf:
-    name: mariadb
+- name: install mariadb package # for AlmaLinux specify in host_vars
+  tags: mariadb
+  package:
+    name: "{{ mariadb_package }}"
     state: latest
-  when: ansible_distribution == "AlmaLinux"
-
-- name: install mariadb package (Debian)
-  tags: debian,db,mariadb
-  apt:
-    name: mariadb-server
-    state: latest
-  when: ansible_distribution == "Debian"
