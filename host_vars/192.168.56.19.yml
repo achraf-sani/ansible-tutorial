@@ -1,3 +1,5 @@
 apache_package_name: httpd
 apache_service: httpd
 php_package_name: php
+ssh_users: "achraf sid"
+ssh_template_file: ssh_config_alma.j2
