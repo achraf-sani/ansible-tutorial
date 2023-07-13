@@ -1,0 +1,44 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+    - name: fix broken packages
+      command: apt-get -f install -y
+
+    - name: install updates (AlmaLinux)
+      tags: always
+      dnf:
+        update_only: yes
+        update_cache: yes
+      when: ansible_distribution == "AlmaLinux"
+
+    - name: install updates (Debian)
+      tags: always
+      apt:
+        upgrade: yes
+        update_cache: yes
+      when: ansible_distribution == "Debian"
+
+
+- hosts: all
+  become: true
+  tasks:
+    - name: create sid user
+      tags: always
+      user:
+        name: sid 
+        groups: root
+    - name: add ssh key for sid
+      tags: always
+      authorized_key: 
+        user: sid
+        key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICG6MkjxqukCAeZ84Q4cQqy7FcH61925ORLmm8cTgRAy ansible"
+
+    - name: add sudoers file for sid
+      copy:
+        src: sudoer_sid
+        dest: /etc/sudoers.d/sid
+        owner: root
+        group: root
+        mode: 0440
